@@ -9,13 +9,14 @@ export default defineConfig(({ mode }) => {
 
 
 	return {
-		plugins: [tsconfigPaths()],
+		// plugins: [tsconfigPaths()],
+		plugins: [/*fs()*/, react()],
 		server: {
 			host: '0.0.0.0',
 			port: 8000,
 			proxy: {
 				"/api": {
-					target: "http://"+process.env.VITE_API_BASE_URL+":"+process.env.VITE_API_PORT,
+					target: "http://"+process.env.VITE_SERVER_URL+":"+process.env.VITE_API_PORT,
 					changeOrigin: true,
 					secure: false,
 					rewrite: path => path.replace(/^\/api/, '')
