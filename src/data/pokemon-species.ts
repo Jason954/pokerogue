@@ -147,7 +147,7 @@ export abstract class PokemonSpeciesForm {
     this.height = height;
     this.weight = weight;
     this.ability1 = ability1;
-    this.ability2 = ability2;
+    this.ability2 = ability2 === Abilities.NONE ? ability1 : ability2;
     this.abilityHidden = abilityHidden;
     this.baseTotal = baseTotal;
     this.baseStats = [ baseHp, baseAtk, baseDef, baseSpatk, baseSpdef, baseSpd ];
@@ -177,12 +177,29 @@ export abstract class PokemonSpeciesForm {
     return this.type1 === type || (this.type2 !== null && this.type2 === type);
   }
 
+  /**
+   * Method to get the total number of abilities a Pokemon species has.
+   * @returns Number of abilities
+   */
   getAbilityCount(): integer {
-    return this.ability2 ? this.abilityHidden ? 3 : 2 : this.abilityHidden ? 2 : 1;
+    return this.abilityHidden !== Abilities.NONE ? 3 : 2;
   }
 
+  /**
+   * Method to get the ability of a Pokemon species.
+   * @param abilityIndex Which ability to get (should only be 0-2)
+   * @returns The id of the Ability
+   */
   getAbility(abilityIndex: integer): Abilities {
-    return !abilityIndex ? this.ability1 : abilityIndex === 1 && this.ability2 ? this.ability2 : this.abilityHidden;
+    let ret: Abilities;
+    if (abilityIndex === 0) {
+      ret = this.ability1;
+    } else if (abilityIndex === 1) {
+      ret = this.ability2;
+    } else {
+      ret = this.abilityHidden;
+    }
+    return ret;
   }
 
   getLevelMoves(): LevelMoves {
@@ -418,7 +435,7 @@ export abstract class PokemonSpeciesForm {
     for (const moveId of moveset) {
       if (speciesEggMoves.hasOwnProperty(rootSpeciesId)) {
         const eggMoveIndex = speciesEggMoves[rootSpeciesId].findIndex(m => m === moveId);
-        if (eggMoveIndex > -1 && eggMoves & Math.pow(2, eggMoveIndex)) {
+        if (eggMoveIndex > -1 && (eggMoves & (1 << eggMoveIndex))) {
           continue;
         }
       }
@@ -597,19 +614,23 @@ export default class PokemonSpecies extends PokemonSpeciesForm implements Locali
   getName(formIndex?: integer): string {
     if (formIndex !== undefined && this.forms.length) {
       const form = this.forms[formIndex];
+      let key: string;
       switch (form.formKey) {
       case SpeciesFormKey.MEGA:
       case SpeciesFormKey.PRIMAL:
       case SpeciesFormKey.ETERNAMAX:
-        return `${form.formName} ${this.name}`;
       case SpeciesFormKey.MEGA_X:
-        return `Mega ${this.name} X`;
       case SpeciesFormKey.MEGA_Y:
-        return `Mega ${this.name} Y`;
+        key = form.formKey;
+        break;
       default:
         if (form.formKey.indexOf(SpeciesFormKey.GIGANTAMAX) > -1) {
-          return `G-Max ${this.name}`;
+          key = "gigantamax";
         }
+      }
+
+      if (key) {
+        return i18next.t(`battlePokemonForm:${key}`, {pokemonName: this.name});
       }
     }
     return this.name;
@@ -821,7 +842,14 @@ export default class PokemonSpecies extends PokemonSpeciesForm implements Locali
   }
 
   hasVariants() {
-    return variantData.hasOwnProperty(this.speciesId);
+    let variantDataIndex: string | number = this.speciesId;
+    if (this.forms.length > 0) {
+      const formKey = this.forms[this.formIndex]?.formKey;
+      if (formKey) {
+        variantDataIndex = `${variantDataIndex}-${formKey}`;
+      }
+    }
+    return variantData.hasOwnProperty(variantDataIndex) || variantData.hasOwnProperty(this.speciesId);
   }
 
   getFormSpriteKey(formIndex?: integer) {
@@ -1643,7 +1671,7 @@ export function initSpecies() {
       new PokemonForm("Fairy", "fairy", Type.FAIRY, null, 3.2, 320, Abilities.MULTITYPE, Abilities.NONE, Abilities.NONE, 720, 120, 120, 120, 120, 120, 120, 3, 0, 324),
       new PokemonForm("???", "unknown", Type.UNKNOWN, null, 3.2, 320, Abilities.MULTITYPE, Abilities.NONE, Abilities.NONE, 720, 120, 120, 120, 120, 120, 120, 3, 0, 324),
     ),
-    new PokemonSpecies(Species.VICTINI, 4, false, false, true, "Victory Pokémon", Type.PSYCHIC, Type.FIRE, 0.4, 4, Abilities.VICTORY_STAR, Abilities.NONE, Abilities.NONE, 600, 100, 100, 100, 100, 100, 100, 3, 100, 300, GrowthRate.SLOW, null, false),
+    new PokemonSpecies(Species.VICTINI, 5, false, false, true, "Victory Pokémon", Type.PSYCHIC, Type.FIRE, 0.4, 4, Abilities.VICTORY_STAR, Abilities.NONE, Abilities.NONE, 600, 100, 100, 100, 100, 100, 100, 3, 100, 300, GrowthRate.SLOW, null, false),
     new PokemonSpecies(Species.SNIVY, 5, false, false, false, "Grass Snake Pokémon", Type.GRASS, null, 0.6, 8.1, Abilities.OVERGROW, Abilities.NONE, Abilities.CONTRARY, 308, 45, 45, 55, 45, 55, 63, 45, 70, 62, GrowthRate.MEDIUM_SLOW, 87.5, false),
     new PokemonSpecies(Species.SERVINE, 5, false, false, false, "Grass Snake Pokémon", Type.GRASS, null, 0.8, 16, Abilities.OVERGROW, Abilities.NONE, Abilities.CONTRARY, 413, 60, 60, 75, 60, 75, 83, 45, 70, 145, GrowthRate.MEDIUM_SLOW, 87.5, false),
     new PokemonSpecies(Species.SERPERIOR, 5, false, false, false, "Regal Pokémon", Type.GRASS, null, 3.3, 63, Abilities.OVERGROW, Abilities.NONE, Abilities.CONTRARY, 528, 75, 75, 95, 75, 95, 113, 45, 70, 238, GrowthRate.MEDIUM_SLOW, 87.5, false),
@@ -2431,8 +2459,8 @@ export function initSpecies() {
     new PokemonSpecies(Species.PAWMOT, 9, false, false, false, "Hands-On Pokémon", Type.ELECTRIC, Type.FIGHTING, 0.9, 41, Abilities.VOLT_ABSORB, Abilities.NATURAL_CURE, Abilities.IRON_FIST, 490, 70, 115, 70, 70, 60, 105, 45, 50, 245, GrowthRate.MEDIUM_FAST, 50, false),
     new PokemonSpecies(Species.TANDEMAUS, 9, false, false, false, "Couple Pokémon", Type.NORMAL, null, 0.3, 1.8, Abilities.RUN_AWAY, Abilities.PICKUP, Abilities.OWN_TEMPO, 305, 50, 50, 45, 40, 45, 75, 150, 50, 61, GrowthRate.FAST, null, false),
     new PokemonSpecies(Species.MAUSHOLD, 9, false, false, false, "Family Pokémon", Type.NORMAL, null, 0.3, 2.3, Abilities.FRIEND_GUARD, Abilities.CHEEK_POUCH, Abilities.TECHNICIAN, 470, 74, 75, 70, 65, 75, 111, 75, 50, 165, GrowthRate.FAST, null, false, false,
-      new PokemonForm("Family of Four", "four", Type.NORMAL, null, 0.3, 2.3, Abilities.FRIEND_GUARD, Abilities.CHEEK_POUCH, Abilities.TECHNICIAN, 470, 74, 75, 70, 65, 75, 111, 75, 50, 165),
-      new PokemonForm("Family of Three", "three", Type.NORMAL, null, 0.3, 2.8, Abilities.FRIEND_GUARD, Abilities.CHEEK_POUCH, Abilities.TECHNICIAN, 470, 74, 75, 70, 65, 75, 111, 75, 50, 165),
+      new PokemonForm("Family of Four", "four", Type.NORMAL, null, 0.3, 2.8, Abilities.FRIEND_GUARD, Abilities.CHEEK_POUCH, Abilities.TECHNICIAN, 470, 74, 75, 70, 65, 75, 111, 75, 50, 165),
+      new PokemonForm("Family of Three", "three", Type.NORMAL, null, 0.3, 2.3, Abilities.FRIEND_GUARD, Abilities.CHEEK_POUCH, Abilities.TECHNICIAN, 470, 74, 75, 70, 65, 75, 111, 75, 50, 165),
     ),
     new PokemonSpecies(Species.FIDOUGH, 9, false, false, false, "Puppy Pokémon", Type.FAIRY, null, 0.3, 10.9, Abilities.OWN_TEMPO, Abilities.NONE, Abilities.KLUTZ, 312, 37, 55, 70, 30, 55, 65, 190, 50, 62, GrowthRate.MEDIUM_SLOW, 50, false),
     new PokemonSpecies(Species.DACHSBUN, 9, false, false, false, "Dog Pokémon", Type.FAIRY, null, 0.5, 14.9, Abilities.WELL_BAKED_BODY, Abilities.NONE, Abilities.AROMA_VEIL, 477, 57, 80, 115, 50, 80, 95, 90, 50, 167, GrowthRate.MEDIUM_SLOW, 50, false),
@@ -2918,8 +2946,8 @@ export const speciesStarters = {
   [Species.DARKRAI]: 6,
   [Species.SHAYMIN]: 6,
   [Species.ARCEUS]: 9,
-  [Species.VICTINI]: 7,
 
+  [Species.VICTINI]: 7,
   [Species.SNIVY]: 3,
   [Species.TEPIG]: 3,
   [Species.OSHAWOTT]: 3,
