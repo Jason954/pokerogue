@@ -64,7 +64,7 @@ export default class MenuUiHandler extends MessageUiHandler {
       });
   }
 
-  setup() {
+  setup(): void {
     const ui = this.getUi();
     // wiki url directs based on languges available on wiki
     const lang = i18next.resolvedLanguage.substring(0,2);
@@ -169,7 +169,7 @@ export default class MenuUiHandler extends MessageUiHandler {
       });
     };
 
-    if (Utils.isLocal ||  import.meta.env.VITE_IMPORT_DATA) {
+    if (Utils.isLocal || Utils.isBeta) {
       manageDataOptions.push({
         label: i18next.t("menuUiHandler:importSession"),
         handler: () => {
@@ -200,7 +200,7 @@ export default class MenuUiHandler extends MessageUiHandler {
       },
       keepOpen: true
     });
-    if (Utils.isLocal ||  import.meta.env.VITE_IMPORT_DATA) {
+    if (Utils.isLocal || Utils.isBeta) {
       manageDataOptions.push({
         label: i18next.t("menuUiHandler:importData"),
         handler: () => {
