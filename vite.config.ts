@@ -3,16 +3,17 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import { minifyJsonPlugin } from "./src/plugins/vite/vite-minify-json-plugin";
 
 export const defaultConfig = {
-    plugins: [
-        tsconfigPaths() as any,
-        minifyJsonPlugin(["images", "battle-anims"], true)
-    ],
+	plugins: [
+		tsconfigPaths() as any,
+		minifyJsonPlugin(["images", "battle-anims"], true)
+	],
 	server: {
 		host: '0.0.0.0',
 		port: 8000,
 		proxy: {
 			"/api": {
 				target: "http://"+process.env.VITE_SERVER_URL+":"+process.env.VITE_API_PORT,
+				// target: process.env.VITE_SERVER_URL,
 				changeOrigin: true,
 				secure: false,
 				rewrite: path => path.replace(/^\/api/, '')

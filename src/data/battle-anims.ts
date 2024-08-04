@@ -490,6 +490,9 @@ export function initMoveAnim(scene: BattleScene, move: Moves): Promise<void> {
               return resolve();
             }
             return response.json();
+          }).catch(err => {
+            console.log("url error : ", `./battle-anims/${moveName}.json`);
+            console.log("error : ", err);
           })
           .then(ba => {
             if (Array.isArray(ba)) {
